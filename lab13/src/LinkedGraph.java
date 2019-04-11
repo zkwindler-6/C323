@@ -1,0 +1,233 @@
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+/**
+ * lab13: starter code.
+ * <p>
+ * For our purposes, a graph has no self-loops and no parallel
+ * edges. We assume that vertices are labeled with a string and
+ * edges are labeled with a non-negative integer.
+ * <p>
+ * LinkedGraph is a class that implements an undirected graph using
+ * adjacency lists, where an adjacency list is an AList. Each
+ * association in the AList has the incident vertex as the key and the
+ * weight of the edge as the value.
+ * <p>
+ * TODO
+ * <p>
+ * (1) Copy definitions of the following classes into your src
+ * folder: Assoc, AList, Map, and HashMap.
+ * (2) Add the method keys() to Map and implement in HashMap.
+ * (3) Complete the implementation of addEdge(), as described
+ * in lecture.
+ * (4) Implement the isConnected() method.
+ */
+
+public class LinkedGraph implements Graph {
+    String name = "";
+    Map<String, AList<String, Integer>> adjLists = new HashMap<>();
+    int m; // the number of edges in this graph
+
+    /**
+     * Construct the graph with no name and with no nodes and no edges.
+     */
+
+    public LinkedGraph() {
+    }
+
+    /**
+     * Construct the graph with the given name and with no nodes and no
+     * edges.
+     */
+
+    public LinkedGraph(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Adds the given vertex to this graph. Does nothing if the vertex
+     * already exists.
+     */
+
+    public void addVertex(String v) {
+        if (!hasVertex(v))
+            adjLists.put(v, new AList<>());
+    }
+
+    /**
+     * TODO
+     * <p>
+     * Adds the edge from u to v of the given weight to this graph. If
+     * the edge already exists, then its weight is replaced with the
+     * new weight. The incident vertices are automatically added.
+     */
+
+    public void addEdge(String u, String v, int weight) {
+        addVertex(u);
+        addVertex(v);
+        AList<String, Integer> uList, vList;
+        uList = adjLists.get(u);
+        vList = adjLists.get(v);
+
+        /**
+         * TODO
+         *
+         * Finish the rest of this method. Make use of hasEdge() to
+         * check if the edge already exists. Don't forget to update m
+         * appropriately.
+         */
+
+        if (!hasEdge(u, v)) {
+            uList.add(new Assoc<>(v, weight));
+            vList.add(new Assoc<>(u, weight));
+            m++;
+        } else {
+            uList.get(v).value = weight;
+            vList.get(u).value = weight;
+        }
+    }
+
+    /**
+     * Returns true iff the vertex v exists.
+     */
+
+    public boolean hasVertex(String v) {
+        return adjLists.get(v) != null;
+    }
+
+    /**
+     * Returns true iff the edge between u and v exists.
+     */
+
+    public boolean hasEdge(String u, String v) {
+        return hasVertex(u) && hasVertex(v) &&
+                adjLists.get(u).get(v) != null;
+    }
+
+    /**
+     *
+     * Returns the weight of the edge from u to v, if it exists.
+     * Throws a NoSuchElementException if the edge does not exist.
+     */
+
+    public int weight(String u, String v) {
+        if (hasEdge(u, v))
+            return adjLists.get(u).get(v).value;
+        throw new NoSuchElementException();
+    }
+
+    /**
+     * Returns the name of this graph.
+     */
+
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Returns the number of vertices in this graph.
+     */
+
+    public int getNumVertices() {
+        return adjLists.size();
+    }
+
+    /**
+     * Returns the number of edges in this graph.
+     */
+
+    public int getNumEdges() {
+        return m;
+    }
+
+    /**
+     * Returns a list of vertices that are adjacent to v in this graph.
+     */
+
+    public List<String> adj(String v) {
+        List<String> neighbors = new DoublyLinkedList<>();
+        if (hasVertex(v))
+            for (Assoc<String, Integer> edge : adjLists.get(v))
+                neighbors.add(edge.key);
+        return neighbors;
+    }
+
+    /**
+     * TODO
+     * <p>
+     * Returns true iff there is a path (possibly empty) from vertex u to
+     * vertex v in this graph.
+     */
+
+    public boolean isConnected(String u, String v) {
+        List<String> holder = new DoublyLinkedList<>();
+        return isConnectedHelper2(u, v, holder);
+    }
+
+    public boolean isConnectedHelper(String u, String v, List<String> l) {
+        Iterator it = adjLists.keys();
+        List<String> tempList = new DoublyLinkedList<>();
+        while (it.hasNext()) {
+            if (!tempList.contains(u)) {
+                l.add(u);
+                u = (String) it.next();
+                isConnectedHelper(u, v, l);
+            }
+            return u.equals(v);
+        }
+        return false;
+    }
+
+    public boolean isConnectedHelper2(String start, String end, List<String> path_so_far){
+        if (start.equals(end)){
+            return true;
+        }else {
+            for (String one_step : adj(start)) {
+                if (!path_so_far.contains(one_step)){
+                    path_so_far.add(one_step);
+                    if (isConnectedHelper2(one_step,end, path_so_far)){
+                        return true;
+                    }
+                    path_so_far.remove(0);
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * TODO
+     * 
+     * Returns a list of vertices that are exactly two hops away from 
+     * v (without returning v).
+     */
+    public List<String> twoHopsAway(String v) {
+      List<String> twoHop = new DoublyLinkedList<>();
+      List<String> oneHop = adj(v);
+      for (String hop : oneHop) {
+        if (!twoHop.contains(hop)){
+                    twoHop.add(adj(hop));
+      }
+      return twoHop; 
+    }
+
+
+    /**
+     * Returns a textual representation of this graph.
+     */
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("LinkedGraph %s: n=%d, m=%d",
+                getName(),
+                getNumVertices(),
+                getNumEdges()));
+        Iterator<String> it = adjLists.keys();
+        while (it.hasNext()) {
+            String v = it.next();
+            sb.append(String.format("\n  %s: ", v));
+            sb.append(adjLists.get(v));
+        }
+        return sb.toString();
+    }
+}
